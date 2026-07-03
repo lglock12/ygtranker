@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YGT Power Rankings</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    :root{--bg:#07140d;--panel:#0d2115;--card:#10291a;--muted:#9fb6a8;--text:#f5fff8;--green:#34d399;--gold:#fbbf24;--silver:#cbd5e1;--bronze:#c08457;--danger:#fb7185;--line:rgba(255,255,255,.1)}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at top,#17492b 0,#07140d 42%,#040807 100%);color:var(--text);min-height:100vh}
+    .wrap{max-width:1050px;margin:0 auto;padding:20px}.hero{padding:26px 0 18px}.eyebrow{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);background:rgba(255,255,255,.06);padding:7px 11px;border-radius:999px;color:var(--muted);font-size:13px}.hero h1{font-size:clamp(34px,8vw,68px);line-height:.92;margin:18px 0 10px;letter-spacing:-2px}.hero p{color:var(--muted);font-size:17px;margin:0;max-width:720px}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.panel{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 20px 80px rgba(0,0,0,.25);backdrop-filter:blur(10px)}.tabs{display:flex;gap:8px;margin-bottom:12px}.tab{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--muted);border-radius:14px;padding:11px;font-weight:800}.tab.active{background:var(--green);color:#05200f}.hint{font-size:13px;color:var(--muted);margin:0 0 12px}.list{display:flex;flex-direction:column;gap:10px}.player{display:grid;grid-template-columns:42px 46px 1fr auto;gap:10px;align-items:center;background:rgba(16,41,26,.92);border:1px solid var(--line);border-radius:18px;padding:10px;touch-action:none}.rank{font-weight:950;font-size:20px;text-align:center;color:var(--muted)}.rank.top1{color:var(--gold)}.rank.top2{color:var(--silver)}.rank.top3{color:var(--bronze)}.avatar{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#14532d,#22c55e);display:grid;place-items:center;font-weight:950;color:white;border:1px solid rgba(255,255,255,.16)}.name{font-weight:900}.role{font-size:12px;color:var(--muted);margin-top:2px}.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.pill{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:4px 7px;color:#dff7e8;background:rgba(255,255,255,.04)}.grab{color:var(--muted);font-size:18px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.btn{border:0;border-radius:16px;padding:14px 12px;font-weight:950;cursor:pointer}.primary{background:linear-gradient(135deg,#34d399,#86efac);color:#05200f}.secondary{background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--text)}.danger{background:rgba(251,113,133,.14);border:1px solid rgba(251,113,133,.35);color:#fecdd3}.status{min-height:20px;color:var(--muted);font-size:13px;margin-top:10px}.leader{display:flex;flex-direction:column;gap:10px}.leaderCard{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:12px}.leaderTop{display:flex;align-items:center;justify-content:space-between;gap:12px}.bar{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:9px}.fill{height:100%;background:linear-gradient(90deg,#34d399,#fbbf24);border-radius:999px}.small{font-size:12px;color:var(--muted)}.metric{font-weight:950}.setup{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:18px;padding:12px;margin-bottom:12px;color:#fde68a;font-size:13px}.hidden{display:none}.sortable-ghost{opacity:.35}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#ecfdf5;color:#05200f;border-radius:999px;padding:11px 16px;font-weight:900;box-shadow:0 10px 40px rgba(0,0,0,.3);display:none}@media(max-width:850px){.grid{grid-template-columns:1fr}.stats{display:none}.player{grid-template-columns:38px 44px 1fr 20px}.actions{grid-template-columns:1fr}.wrap{padding:14px}.panel{border-radius:20px}.hero h1{letter-spacing:-1px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <span class="eyebrow">⛳ Unofficial fan app · YGT Power Rankings</span>
+      <h1>Rank the YGT Field</h1>
+      <p>Drag the golfers into your personal order, submit your ballot, then see the live community leaderboard.</p>
+    </section>
+    <div id="setup" class="setup hidden">Database is not connected yet. Paste your Supabase URL and anon key near the top of this HTML file.</div>
+    <main class="grid">
+      <section class="panel">
+        <div class="tabs"><button class="tab active">My Ballot</button><button class="tab" onclick="scrollResults()">Live Results</button></div>
+        <p class="hint">Press and drag a card. Your order auto-saves on this device.</p>
+        <div id="players" class="list"></div>
+        <div class="actions">
+          <button class="btn primary" onclick="submitVote()">Submit Rankings</button>
+          <button class="btn secondary" onclick="copyRankings()">Copy Rankings</button>
+          <button class="btn danger" onclick="resetRankings()">Reset</button>
+          <button class="btn secondary" onclick="loadResults()">Refresh Results</button>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+      <section class="panel" id="resultsPanel">
+        <div class="tabs"><button class="tab active">Community</button><button class="tab" onclick="copyShareLink()">Share Link</button></div>
+        <p class="hint"><span id="voteCount">0</span> submitted ballots · Lower average rank is better.</p>
+        <div id="leaders" class="leader"></div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast">Copied!</div>
+<script>
+// 1) Create a Supabase project.
+// 2) Run the SQL from ygt-supabase-schema.sql.
+// 3) Paste your values below.
+const SUPABASE_URL = "https://innqslfmapfwijqmqrjb.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_z2F8tsUv-kfnd50rEWbc4A_9HKX_2Ui";
+
+const roster=[
+{id:'grant-horvat',name:'Grant Horvat',role:'Captain',stats:{E:0,B:3,P:8,BG:1}},
+{id:'wesley-bryan',name:'Wesley Bryan',role:'Captain',stats:{E:1,B:4,P:7,BG:0}},
+{id:'george-bryan',name:'George Bryan',role:'Main roster',stats:{E:0,B:4,P:7,BG:1}},
+{id:'brad-dalke',name:'Brad Dalke',role:'Main roster',stats:{E:0,B:3,P:8,BG:1}},
+{id:'garrett-clark',name:'Garrett Clark',role:'Main roster',stats:{E:0,B:2,P:8,BG:2}},
+{id:'micah-morris',name:'Micah Morris',role:'Main roster',stats:{E:0,B:3,P:7,BG:2}},
+{id:'peter-finch',name:'Peter Finch',role:'Main roster',stats:{E:0,B:2,P:9,BG:1}},
+{id:'ryan-ruffles',name:'Ryan Ruffles',role:'Main roster',stats:{E:0,B:3,P:8,BG:1}},
+{id:'sean-walsh',name:'Sean Walsh',role:'Main roster',stats:{E:0,B:2,P:9,BG:1}},
+{id:'luke-kwon',name:'Luke Kwon',role:'Main roster',stats:{E:1,B:3,P:7,BG:1}},
+{id:'josh-kelley',name:'Josh Kelley',role:'Main roster',stats:{E:0,B:2,P:8,BG:2}},
+{id:'chance-taylor',name:'Chance Taylor',role:'Main roster',stats:{E:0,B:2,P:9,BG:1}},
+{id:'sam-heung-min',name:'Sam Heung Min',role:'Main roster',stats:{E:0,B:2,P:8,BG:2}},
+{id:'roger-steele',name:'Roger Steele',role:'Main roster',stats:{E:0,B:1,P:9,BG:2}},
+{id:'luke-toomey',name:'Luke Toomey (Tooms)',role:'Main roster',stats:{E:0,B:2,P:8,BG:2}},
+{id:'taco-golf',name:'Tae-Wook Koh (Taco Golf)',role:'Main roster',stats:{E:0,B:3,P:8,BG:1}}
+];
+let order=JSON.parse(localStorage.getItem('ygt_order')||'null')||roster.map(p=>p.id);
+const connected=!SUPABASE_URL.includes('PASTE_')&&!SUPABASE_ANON_KEY.includes('PASTE_');
+const db=connected?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+if(!connected)document.getElementById('setup').classList.remove('hidden');
+function initials(n){return n.split(/\s|\(/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+function render(){const el=document.getElementById('players'); el.innerHTML=''; order.forEach((id,i)=>{const p=roster.find(x=>x.id===id); const r=i+1; const div=document.createElement('div'); div.className='player'; div.dataset.id=id; div.innerHTML=`<div class="rank ${r===1?'top1':r===2?'top2':r===3?'top3':''}">${r}</div><div class="avatar">${initials(p.name)}</div><div><div class="name">${p.name}</div><div class="role">${p.role}</div></div><div class="stats"><span class="pill">🦅 ${p.stats.E}</span><span class="pill">🐦 ${p.stats.B}</span><span class="pill">➖ ${p.stats.P}</span><span class="pill">📈 ${p.stats.BG}</span><span class="grab">☰</span></div>`; el.appendChild(div)});}
+render();
+new Sortable(document.getElementById('players'),{animation:160,ghostClass:'sortable-ghost',onEnd:()=>{order=[...document.querySelectorAll('.player')].map(x=>x.dataset.id);localStorage.setItem('ygt_order',JSON.stringify(order));render();}});
+function show(s){document.getElementById('status').textContent=s} function toast(s='Copied!'){const t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',1600)}
+async function submitVote(){if(!connected){show('Add Supabase keys first, then this submits to the community database.');return} const ballot={rankings:order, user_agent:navigator.userAgent.slice(0,120)}; const {error}=await db.from('votes').insert(ballot); if(error){show('Submit failed: '+error.message);return} localStorage.setItem('ygt_voted','1'); show('Vote submitted. Community results updated.'); toast('Ballot submitted'); loadResults();}
+async function loadResults(){const leaders=document.getElementById('leaders'); if(!connected){leaders.innerHTML='<div class="leaderCard">Connect Supabase to see live results. Your ranking tool still works locally.</div>';return} const {data,error}=await db.from('votes').select('rankings'); if(error){leaders.innerHTML='<div class="leaderCard">Could not load results.</div>';return} document.getElementById('voteCount').textContent=data.length; const totals={}; roster.forEach(p=>totals[p.id]={sum:0,count:0,ones:0}); data.forEach(v=>(v.rankings||[]).forEach((id,i)=>{if(totals[id]){totals[id].sum+=i+1;totals[id].count++; if(i===0)totals[id].ones++;}})); const rows=roster.map(p=>({p,avg:totals[p.id].count?totals[p.id].sum/totals[p.id].count:99,ones:totals[p.id].ones})).sort((a,b)=>a.avg-b.avg); leaders.innerHTML=''; rows.forEach((row,i)=>{const pct=Math.max(3,100-((row.avg-1)/15*100)); const card=document.createElement('div'); card.className='leaderCard'; card.innerHTML=`<div class="leaderTop"><div><b>${i+1}. ${row.p.name}</b><div class="small">${row.ones} first-place votes</div></div><div class="metric">${row.avg===99?'—':row.avg.toFixed(2)}</div></div><div class="bar"><div class="fill" style="width:${pct}%"></div></div>`; leaders.appendChild(card)});}
+function copyRankings(){const txt='🏆 My YGT Power Rankings\n\n'+order.map((id,i)=>`${i+1}. ${roster.find(p=>p.id===id).name}`).join('\n')+'\n\nMake yours:'; navigator.clipboard.writeText(txt+' '+location.href); toast();}
+function copyShareLink(){navigator.clipboard.writeText(location.href); toast('Link copied')}
+function resetRankings(){order=roster.map(p=>p.id);localStorage.removeItem('ygt_order');render();show('Reset to default order.')}
+function scrollResults(){document.getElementById('resultsPanel').scrollIntoView({behavior:'smooth'})}
+loadResults();
+</script>
+</body>
+</html>
